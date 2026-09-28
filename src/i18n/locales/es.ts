@@ -313,6 +313,7 @@ export const es: LanguageTranslation = {
             undo: 'Deshacer',
             redo: 'Rehacer',
             reorder_diagram: 'Organizar Diagrama Automáticamente',
+            reorganize_relationships: 'Reorganizar relaciones',
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

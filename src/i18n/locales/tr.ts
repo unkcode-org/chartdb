@@ -310,6 +310,7 @@ export const tr: LanguageTranslation = {
             undo: 'Geri Al',
             redo: 'Yinele',
             reorder_diagram: 'Diyagramı Otomatik Düzenle',
+            reorganize_relationships: 'Reorganize Relationships',
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

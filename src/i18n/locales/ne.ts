@@ -313,6 +313,7 @@ export const ne: LanguageTranslation = {
             undo: 'पूर्ववत',
             redo: 'पुनः गर्नुहोस्',
             reorder_diagram: 'डायाग्राम स्वचालित मिलाउनुहोस्',
+            reorganize_relationships: 'Reorganize Relationships',
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

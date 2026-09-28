@@ -23,6 +23,8 @@ export type CanvasEvent = PanClickEvent;
 
 export interface CanvasContext {
     reorderTables: (options?: { updateHistory?: boolean }) => void;
+    reorganizeRelationships: () => void;
+    relationshipLanes: Record<string, number>;
     fitView: (options?: {
         duration?: number;
         padding?: number;
@@ -81,6 +83,8 @@ export interface CanvasContext {
 
 export const canvasContext = createContext<CanvasContext>({
     reorderTables: emptyFn,
+    reorganizeRelationships: emptyFn,
+    relationshipLanes: {},
     fitView: emptyFn,
     setOverlapGraph: emptyFn,
     overlapGraph: createGraph(),

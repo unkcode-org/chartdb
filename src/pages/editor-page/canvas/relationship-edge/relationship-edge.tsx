@@ -12,6 +12,7 @@ import { useLocalConfig } from '@/hooks/use-local-config';
 import { useCanvas } from '@/hooks/use-canvas';
 import { EditRelationshipPopover } from './edit-relationship-popover';
 import { EllipsisIcon } from 'lucide-react';
+import { getLanePath } from './relationship-routing';
 
 export type RelationshipEdgeType = Edge<
     {
@@ -45,6 +46,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 editRelationshipPopover,
                 openRelationshipPopover,
                 closeRelationshipPopover,
+                relationshipLanes,
             } = useCanvas();
 
             const relationship = data?.relationship;
@@ -243,7 +245,10 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
             const targetLeftX = targetX - 1;
             const targetRightX = targetX + targetWidth + 10;
 
-            const { sourceSide, targetSide } = useMemo(() => {
+            const { sourceSide, targetSide } = useMemo<{
+                sourceSide: 'left' | 'right';
+                targetSide: 'left' | 'right';
+            }>(() => {
                 const distances = {
                     leftToLeft: Math.abs(sourceLeftX - targetLeftX),
                     leftToRight: Math.abs(sourceLeftX - targetRightX),
@@ -286,6 +291,19 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 const roundedSourceY = Math.round(sourceY);
                 const roundedTargetY = Math.round(targetY);
 
+                const laneY = relationshipLanes[id];
+                if (laneY !== undefined) {
+                    return getLanePath({
+                        sourceX: roundedSourceX,
+                        sourceY: roundedSourceY,
+                        targetX: roundedTargetX,
+                        targetY: roundedTargetY,
+                        sourceSide,
+                        targetSide,
+                        laneY,
+                    });
+                }
+
                 const [path] = getSmoothStepPath({
                     sourceX: roundedSourceX,
                     sourceY: roundedSourceY,
@@ -310,6 +328,8 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 targetSide,
                 edgeNumber,
                 showCardinality,
+                relationshipLanes,
+                id,
             ]);
 
             const sourceMarker = useMemo(

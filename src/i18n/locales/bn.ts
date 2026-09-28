@@ -314,6 +314,7 @@ export const bn: LanguageTranslation = {
             undo: 'পূর্বাবস্থায় ফিরুন',
             redo: 'পুনরায় করুন',
             reorder_diagram: 'স্বয়ংক্রিয় ডায়াগ্রাম সাজান',
+            reorganize_relationships: 'Reorganize Relationships',
             highlight_overlapping_tables: 'ওভারল্যাপিং টেবিল হাইলাইট করুন',
 
             // TODO: Translate

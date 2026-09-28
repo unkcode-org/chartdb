@@ -313,6 +313,7 @@ export const te: LanguageTranslation = {
             undo: 'తిరిగి చేయు',
             redo: 'మరలా చేయు',
             reorder_diagram: 'చిత్రాన్ని స్వయంచాలకంగా అమర్చండి',
+            reorganize_relationships: 'Reorganize Relationships',
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

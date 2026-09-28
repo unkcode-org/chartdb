@@ -22,6 +22,7 @@ import {
 } from '@/pages/editor-page/canvas/create-relationship-node/create-relationship-node';
 import { useEventEmitter } from 'ahooks';
 import { useLocalConfig } from '@/hooks/use-local-config';
+import { arrangeRelationshipLanes } from '@/pages/editor-page/canvas/relationship-edge/relationship-routing';
 
 interface CanvasProviderProps {
     children: ReactNode;
@@ -42,7 +43,17 @@ export const CanvasProvider = ({ children }: CanvasProviderProps) => {
         hasActiveFilter,
     } = useDiagramFilter();
     const { showDBViews } = useLocalConfig();
-    const { fitView, screenToFlowPosition, setNodes } = useReactFlow();
+    const { fitView, screenToFlowPosition, setNodes, getNodes } =
+        useReactFlow();
+    const [relationshipLanes, setRelationshipLanes] = useState<
+        Record<string, number>
+    >({});
+    const reorganizeRelationships = useCallback(() => {
+        setRelationshipLanes(
+            arrangeRelationshipLanes(relationships, getNodes())
+        );
+    }, [relationships, getNodes]);
+    useEffect(() => setRelationshipLanes({}), [diagramId]);
     const [overlapGraph, setOverlapGraph] =
         useState<Graph<string>>(createGraph());
     const [editTableModeTable, setEditTableModeTable] = useState<{
@@ -226,6 +237,8 @@ export const CanvasProvider = ({ children }: CanvasProviderProps) => {
         <canvasContext.Provider
             value={{
                 reorderTables,
+                reorganizeRelationships,
+                relationshipLanes,
                 fitView,
                 setOverlapGraph,
                 overlapGraph,

@@ -309,6 +309,7 @@ export const hr: LanguageTranslation = {
             undo: 'Poništi',
             redo: 'Ponovi',
             reorder_diagram: 'Automatski preuredi dijagram',
+            reorganize_relationships: 'Reorganize Relationships',
             highlight_overlapping_tables: 'Istakni preklapajuće tablice',
             clear_custom_type_highlight: 'Ukloni isticanje za "{{typeName}}"',
             custom_type_highlight_tooltip:

@@ -305,6 +305,7 @@ export const en = {
             undo: 'Undo',
             redo: 'Redo',
             reorder_diagram: 'Auto Arrange Diagram',
+            reorganize_relationships: 'Reorganize Relationships',
             highlight_overlapping_tables: 'Highlight Overlapping Tables',
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

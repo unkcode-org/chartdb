@@ -8,6 +8,7 @@ import {
     Undo,
     Scan,
     LayoutGrid,
+    Workflow,
 } from 'lucide-react';
 import { Separator } from '@/components/separator/separator';
 import { ToolbarButton } from './toolbar-button';
@@ -38,7 +39,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ readonly }) => {
     const { redo, undo, hasRedo, hasUndo } = useHistory();
     const { getZoom, zoomIn, zoomOut, fitView } = useReactFlow();
     const [zoom, setZoom] = useState<string>(convertToPercentage(getZoom()));
-    const { setShowFilter, reorderTables } = useCanvas();
+    const { setShowFilter, reorderTables, reorganizeRelationships } =
+        useCanvas();
     const { hasActiveFilter } = useDiagramFilter();
     const { showAlert } = useAlert();
 
@@ -182,6 +184,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({ readonly }) => {
                                 </TooltipTrigger>
                                 <TooltipContent>
                                     {t('toolbar.reorder_diagram')}
+                                </TooltipContent>
+                            </Tooltip>
+                            <Separator orientation="vertical" />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span>
+                                        <ToolbarButton
+                                            onClick={reorganizeRelationships}
+                                        >
+                                            <Workflow />
+                                        </ToolbarButton>
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {t('toolbar.reorganize_relationships')}
                                 </TooltipContent>
                             </Tooltip>
                             <Separator orientation="vertical" />

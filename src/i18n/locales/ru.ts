@@ -311,6 +311,7 @@ export const ru: LanguageTranslation = {
             undo: 'Отменить',
             redo: 'Вернуть',
             reorder_diagram: 'Автоматическая расстановка диаграммы',
+            reorganize_relationships: 'Reorganize Relationships',
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

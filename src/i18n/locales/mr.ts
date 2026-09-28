@@ -317,6 +317,7 @@ export const mr: LanguageTranslation = {
             undo: 'पूर्ववत करा',
             redo: 'पुन्हा करा',
             reorder_diagram: 'आरेख स्वयंचलित व्यवस्थित करा',
+            reorganize_relationships: 'Reorganize Relationships',
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

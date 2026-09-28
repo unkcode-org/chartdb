@@ -314,6 +314,7 @@ export const de: LanguageTranslation = {
             undo: 'Rückgängig',
             redo: 'Wiederholen',
             reorder_diagram: 'Diagramm automatisch anordnen',
+            reorganize_relationships: 'Reorganize Relationships',
 
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',

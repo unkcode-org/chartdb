@@ -312,6 +312,7 @@ export const id_ID: LanguageTranslation = {
             undo: 'Undo',
             redo: 'Redo',
             reorder_diagram: 'Atur Otomatis Diagram',
+            reorganize_relationships: 'Reorganize Relationships',
             // TODO: Translate
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
             custom_type_highlight_tooltip:

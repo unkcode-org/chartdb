@@ -308,6 +308,7 @@ export const ar: LanguageTranslation = {
             undo: 'تراجع',
             redo: 'إعادة',
             reorder_diagram: 'ترتيب تلقائي للرسم البياني',
+            reorganize_relationships: 'Reorganize Relationships',
             highlight_overlapping_tables: 'تمييز الجداول المتداخلة',
             filter: 'تصفية الجداول',
             clear_custom_type_highlight: 'Clear highlight for "{{typeName}}"',
