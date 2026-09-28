@@ -1670,7 +1670,10 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                 onMouseMove={handleMouseMove}
             >
                 <ReactFlow
-                    onlyRenderVisibleElements
+                    // Relationship paths can extend outside the bounding box of
+                    // their tables. React Flow's viewport culling uses that box,
+                    // so it can remove a still-visible relationship while panning.
+                    onlyRenderVisibleElements={false}
                     colorMode={effectiveTheme}
                     className={cn('nodes-animated', {
                         'canvas-cursor-multi-select': shiftPressed,
