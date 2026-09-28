@@ -27,7 +27,6 @@ import {
     useReactFlow,
     useKeyPress,
     SelectionMode,
-    useUpdateNodeInternals,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import equal from 'fast-deep-equal';
@@ -165,7 +164,6 @@ const tableToTableNode = (
         showDBViews,
         forceShow,
         isRelationshipCreatingTarget = false,
-        targetEdgeCounts,
     }: {
         filter?: DiagramFilter;
         databaseType: DatabaseType;
@@ -173,7 +171,6 @@ const tableToTableNode = (
         showDBViews?: boolean;
         forceShow?: boolean;
         isRelationshipCreatingTarget?: boolean;
-        targetEdgeCounts?: Record<string, number>;
     }
 ): TableNodeType => {
     // Always use absolute position for now
@@ -202,7 +199,6 @@ const tableToTableNode = (
             table,
             isOverlapping: false,
             isRelationshipCreatingTarget,
-            targetEdgeCounts,
         },
         width: table.width ?? MIN_TABLE_SIZE,
         hidden,
@@ -275,7 +271,6 @@ export interface CanvasProps {
 
 export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
     const { getEdge, getInternalNode, getNode } = useReactFlow();
-    const updateNodeInternals = useUpdateNodeInternals();
     const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
     const [selectedRelationshipIds, setSelectedRelationshipIds] = useState<
         string[]
@@ -405,90 +400,56 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
     }, [isInitialLoadingNodes, fitView]);
 
     useEffect(() => {
-        // Force React Flow to re-register handles for all table nodes
-        // This ensures handles exist before edges reference them
-        const tableNodeIds = tables.map((t) => t.id);
-        if (tableNodeIds.length > 0) {
-            updateNodeInternals(tableNodeIds);
-        }
+        const targetDepIndexes: Record<string, number> = dependencies.reduce(
+            (acc, dep) => {
+                acc[dep.tableId] = 0;
+                return acc;
+            },
+            {} as Record<string, number>
+        );
 
-        // Delay edge creation to ensure handles are registered
-        const timeoutId = setTimeout(() => {
-            const targetIndexes: Record<string, number> = relationships.reduce(
-                (acc, relationship) => {
-                    acc[
-                        `${relationship.targetTableId}${relationship.targetFieldId}`
-                    ] = 0;
-                    return acc;
-                },
-                {} as Record<string, number>
+        setEdges((prevEdges) => {
+            // Create a map of previous edge states to preserve selection
+            const prevEdgeStates = new Map(
+                prevEdges.map((edge) => [
+                    edge.id,
+                    { selected: edge.selected, animated: edge.animated },
+                ])
             );
 
-            const targetDepIndexes: Record<string, number> =
-                dependencies.reduce(
-                    (acc, dep) => {
-                        acc[dep.tableId] = 0;
-                        return acc;
-                    },
-                    {} as Record<string, number>
-                );
-
-            setEdges((prevEdges) => {
-                // Create a map of previous edge states to preserve selection
-                const prevEdgeStates = new Map(
-                    prevEdges.map((edge) => [
-                        edge.id,
-                        { selected: edge.selected, animated: edge.animated },
-                    ])
-                );
-
-                return [
-                    ...relationships.map(
-                        (relationship): RelationshipEdgeType => {
-                            const prevState = prevEdgeStates.get(
-                                relationship.id
-                            );
-                            return {
-                                id: relationship.id,
-                                source: relationship.sourceTableId,
-                                target: relationship.targetTableId,
-                                sourceHandle: `${LEFT_HANDLE_ID_PREFIX}${relationship.sourceFieldId}`,
-                                targetHandle: `${TARGET_ID_PREFIX}${targetIndexes[`${relationship.targetTableId}${relationship.targetFieldId}`]++}_${relationship.targetFieldId}`,
-                                type: 'relationship-edge',
-                                data: { relationship },
-                                selected: prevState?.selected ?? false,
-                                animated: prevState?.animated ?? false,
-                            };
-                        }
-                    ),
-                    ...dependencies.map((dep): DependencyEdgeType => {
-                        const prevState = prevEdgeStates.get(dep.id);
-                        return {
-                            id: dep.id,
-                            source: dep.dependentTableId,
-                            target: dep.tableId,
-                            sourceHandle: `${TOP_SOURCE_HANDLE_ID_PREFIX}${dep.dependentTableId}`,
-                            targetHandle: `${TARGET_DEP_PREFIX}${targetDepIndexes[dep.tableId]++}_${dep.tableId}`,
-                            type: 'dependency-edge',
-                            data: { dependency: dep },
-                            hidden: !showDBViews,
-                            selected: prevState?.selected ?? false,
-                            animated: prevState?.animated ?? false,
-                        };
-                    }),
-                ];
-            });
-        }, 100); // Delay to let handles register after updateNodeInternals
-
-        return () => clearTimeout(timeoutId);
-    }, [
-        relationships,
-        dependencies,
-        setEdges,
-        showDBViews,
-        tables,
-        updateNodeInternals,
-    ]);
+            return [
+                ...relationships.map((relationship): RelationshipEdgeType => {
+                    const prevState = prevEdgeStates.get(relationship.id);
+                    return {
+                        id: relationship.id,
+                        source: relationship.sourceTableId,
+                        target: relationship.targetTableId,
+                        sourceHandle: `${LEFT_HANDLE_ID_PREFIX}${relationship.sourceFieldId}`,
+                        targetHandle: `${TARGET_ID_PREFIX}${relationship.targetFieldId}`,
+                        type: 'relationship-edge',
+                        data: { relationship },
+                        selected: prevState?.selected ?? false,
+                        animated: prevState?.animated ?? false,
+                    };
+                }),
+                ...dependencies.map((dep): DependencyEdgeType => {
+                    const prevState = prevEdgeStates.get(dep.id);
+                    return {
+                        id: dep.id,
+                        source: dep.dependentTableId,
+                        target: dep.tableId,
+                        sourceHandle: `${TOP_SOURCE_HANDLE_ID_PREFIX}${dep.dependentTableId}`,
+                        targetHandle: `${TARGET_DEP_PREFIX}${targetDepIndexes[dep.tableId]++}_${dep.tableId}`,
+                        type: 'dependency-edge',
+                        data: { dependency: dep },
+                        hidden: !showDBViews,
+                        selected: prevState?.selected ?? false,
+                        animated: prevState?.animated ?? false,
+                    };
+                }),
+            ];
+        });
+    }, [relationships, dependencies, setEdges, showDBViews]);
 
     useEffect(() => {
         const selectedNodesIds = nodes
@@ -584,29 +545,18 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
     }, [selectedRelationshipIds, selectedTableIds, setEdges]);
 
     useEffect(() => {
-        // Compute target edge counts per field (same logic as edge creation)
-        // This ensures handle creation is synchronized with edge indices
-        const targetEdgeCountsByField: Record<string, number> = {};
-        relationships.forEach((rel) => {
-            const fieldId = rel.targetFieldId;
-            targetEdgeCountsByField[fieldId] =
-                (targetEdgeCountsByField[fieldId] || 0) + 1;
-        });
-
         setNodes((prevNodes) => {
+            const previousTableNodes = new Map(
+                prevNodes
+                    .filter(
+                        (node): node is TableNodeType => node.type === 'table'
+                    )
+                    .map((node) => [node.id, node])
+            );
             const newNodes = [
                 ...tables.map((table) => {
                     const isOverlapping =
                         (overlapGraph.graph.get(table.id) ?? []).length > 0;
-
-                    // Get target edge counts for this table's fields
-                    const tableTargetEdgeCounts: Record<string, number> = {};
-                    table.fields.forEach((field) => {
-                        if (targetEdgeCountsByField[field.id]) {
-                            tableTargetEdgeCounts[field.id] =
-                                targetEdgeCountsByField[field.id];
-                        }
-                    });
 
                     const node = tableToTableNode(table, {
                         filter,
@@ -615,8 +565,8 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                         showDBViews,
                         forceShow: shouldForceShowTable(table.id),
                         isRelationshipCreatingTarget: false,
-                        targetEdgeCounts: tableTargetEdgeCounts,
                     });
+                    const previousNode = previousTableNodes.get(table.id);
 
                     // Check if table uses the highlighted custom type
                     let hasHighlightedCustomType = false;
@@ -629,6 +579,15 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
 
                     return {
                         ...node,
+                        // React Flow drops handle positions when a replacement
+                        // node has no measurements, which temporarily removes
+                        // all edges connected to that table.
+                        measured:
+                            !node.hidden && !previousNode?.hidden
+                                ? previousNode?.measured
+                                : undefined,
+                        selected: previousNode?.selected,
+                        dragging: previousNode?.dragging,
                         data: {
                             ...node.data,
                             isOverlapping,

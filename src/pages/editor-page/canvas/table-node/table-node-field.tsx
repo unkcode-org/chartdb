@@ -1,16 +1,5 @@
-import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
-import {
-    Handle,
-    Position,
-    useConnection,
-    useUpdateNodeInternals,
-} from '@xyflow/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Handle, Position, useConnection } from '@xyflow/react';
 import { Button } from '@/components/button/button';
 import {
     KeyRound,
@@ -48,8 +37,6 @@ export interface TableNodeFieldProps {
     highlighted: boolean;
     visible: boolean;
     isConnectable: boolean;
-    // Target edge count passed from canvas to ensure sync with edge creation
-    targetEdgeCount?: number;
 }
 
 const arePropsEqual = (
@@ -74,25 +61,15 @@ const arePropsEqual = (
         prevProps.highlighted === nextProps.highlighted &&
         prevProps.visible === nextProps.visible &&
         prevProps.isConnectable === nextProps.isConnectable &&
-        prevProps.tableNodeId === nextProps.tableNodeId &&
-        prevProps.targetEdgeCount === nextProps.targetEdgeCount
+        prevProps.tableNodeId === nextProps.tableNodeId
     );
 };
 
 export const TableNodeField: React.FC<TableNodeFieldProps> = React.memo(
-    ({
-        field,
-        focused,
-        tableNodeId,
-        highlighted,
-        visible,
-        isConnectable,
-        targetEdgeCount,
-    }) => {
+    ({ field, focused, tableNodeId, highlighted, visible, isConnectable }) => {
         const { relationships, readonly, highlightedCustomType, databaseType } =
             useChartDB();
 
-        const updateNodeInternals = useUpdateNodeInternals();
         const connection = useConnection();
         const isTarget = useMemo(
             () =>
@@ -127,24 +104,6 @@ export const TableNodeField: React.FC<TableNodeFieldProps> = React.memo(
             ]
         );
 
-        const numberOfEdgesToField = useMemo(() => {
-            // Use targetEdgeCount from canvas when available (ensures sync with edge creation)
-            if (targetEdgeCount !== undefined) {
-                return targetEdgeCount;
-            }
-            // Fallback: count from relationships
-            let count = 0;
-            for (const rel of relationships) {
-                if (
-                    rel.targetTableId === tableNodeId &&
-                    rel.targetFieldId === field.id
-                ) {
-                    count++;
-                }
-            }
-            return count;
-        }, [targetEdgeCount, relationships, tableNodeId, field.id]);
-
         const isForeignKey = useMemo(() => {
             return relationships.some((rel) => {
                 // FK placement logic:
@@ -169,24 +128,6 @@ export const TableNodeField: React.FC<TableNodeFieldProps> = React.memo(
                 );
             });
         }, [relationships, tableNodeId, field.id]);
-
-        const previousNumberOfEdgesToFieldRef = useRef<number | null>(null);
-
-        useEffect(() => {
-            // Always update on first render, then only when count changes
-            if (
-                previousNumberOfEdgesToFieldRef.current === null ||
-                previousNumberOfEdgesToFieldRef.current !== numberOfEdgesToField
-            ) {
-                // Use requestAnimationFrame for immediate but batched update
-                const frameId = requestAnimationFrame(() => {
-                    updateNodeInternals(tableNodeId);
-                    previousNumberOfEdgesToFieldRef.current =
-                        numberOfEdgesToField;
-                });
-                return () => cancelAnimationFrame(frameId);
-            }
-        }, [tableNodeId, updateNodeInternals, numberOfEdgesToField]);
 
         const {
             checkIfFieldRemoved,
@@ -384,34 +325,17 @@ export const TableNodeField: React.FC<TableNodeFieldProps> = React.memo(
                     </>
                 ) : null}
                 {isConnectable && (
-                    <>
-                        {Array.from(
-                            { length: numberOfEdgesToField },
-                            (_, index) => index
-                        ).map((index) => (
-                            <Handle
-                                id={`${TARGET_ID_PREFIX}${index}_${field.id}`}
-                                key={`${TARGET_ID_PREFIX}${index}_${field.id}`}
-                                className={`!invisible`}
-                                position={Position.Left}
-                                type="target"
-                                isConnectable={
-                                    !connection.inProgress || isTarget
-                                }
-                            />
-                        ))}
-                        <Handle
-                            id={`${TARGET_ID_PREFIX}${numberOfEdgesToField}_${field.id}`}
-                            className={
-                                isTarget
-                                    ? '!absolute !left-0 !top-0 !h-full !w-full !transform-none !rounded-none !border-none !opacity-0'
-                                    : `!invisible`
-                            }
-                            position={Position.Left}
-                            type="target"
-                            isConnectable={!connection.inProgress || isTarget}
-                        />
-                    </>
+                    <Handle
+                        id={`${TARGET_ID_PREFIX}${field.id}`}
+                        className={
+                            isTarget
+                                ? '!absolute !left-0 !top-0 !h-full !w-full !transform-none !rounded-none !border-none !opacity-0'
+                                : '!invisible'
+                        }
+                        position={Position.Left}
+                        type="target"
+                        isConnectable={!connection.inProgress || isTarget}
+                    />
                 )}
                 <div
                     className={cn('flex items-center gap-1 min-w-0 text-left', {

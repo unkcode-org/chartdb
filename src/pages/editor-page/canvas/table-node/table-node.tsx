@@ -12,6 +12,7 @@ import {
     useStore,
     Handle,
     Position,
+    useUpdateNodeInternals,
 } from '@xyflow/react';
 import { Button } from '@/components/button/button';
 import {
@@ -66,8 +67,6 @@ export type TableNodeType = Node<
         hasHighlightedCustomType?: boolean;
         highlightTable?: boolean;
         isRelationshipCreatingTarget?: boolean;
-        // Map of fieldId -> number of edges targeting that field (for handle creation)
-        targetEdgeCounts?: Record<string, number>;
     },
     'table'
 >;
@@ -84,7 +83,6 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
             hasHighlightedCustomType,
             highlightTable,
             isRelationshipCreatingTarget,
-            targetEdgeCounts,
         },
     }) => {
         const { updateTable, relationships, readonly } = useChartDB();
@@ -120,6 +118,7 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
             useState<number | null>(null);
 
         const connection = useConnection();
+        const updateNodeInternals = useUpdateNodeInternals();
 
         const isTarget = useMemo(() => {
             if (!isHovering) return false;
@@ -301,6 +300,15 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
             editTableMode,
             editModeInitialFieldCount,
         ]);
+
+        const visibleFieldIds = visibleFields
+            .map((field) => field.id)
+            .join(',');
+        useEffect(() => {
+            // The set of field handles changes when a table is compacted or
+            // relationships change. Re-measure after the handles are mounted.
+            updateNodeInternals(id);
+        }, [id, updateNodeInternals, visibleFieldIds]);
 
         const isPartOfCreatingRelationship = useMemo(
             () =>
@@ -590,7 +598,6 @@ export const TableNode: React.FC<NodeProps<TableNodeType>> = React.memo(
                                 highlighted={highlightedFieldIds.has(field.id)}
                                 visible={true}
                                 isConnectable={!table.isView}
-                                targetEdgeCount={targetEdgeCounts?.[field.id]}
                             />
                         ))}
                     </div>
