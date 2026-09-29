@@ -3,6 +3,7 @@ import { emptyFn } from '@/lib/utils';
 import type { Graph } from '@/lib/graph';
 import { createGraph } from '@/lib/graph';
 import { EventEmitter } from 'ahooks/lib/useEventEmitter';
+import type { RelationshipRoute } from '@/pages/editor-page/canvas/relationship-edge/relationship-routing';
 
 export type CanvasEventType = 'pan_click';
 
@@ -24,7 +25,8 @@ export type CanvasEvent = PanClickEvent;
 export interface CanvasContext {
     reorderTables: (options?: { updateHistory?: boolean }) => void;
     reorganizeRelationships: () => void;
-    relationshipLanes: Record<string, number>;
+    clearRelationshipRoutes: () => void;
+    relationshipRoutes: Record<string, RelationshipRoute>;
     fitView: (options?: {
         duration?: number;
         padding?: number;
@@ -84,7 +86,8 @@ export interface CanvasContext {
 export const canvasContext = createContext<CanvasContext>({
     reorderTables: emptyFn,
     reorganizeRelationships: emptyFn,
-    relationshipLanes: {},
+    clearRelationshipRoutes: emptyFn,
+    relationshipRoutes: {},
     fitView: emptyFn,
     setOverlapGraph: emptyFn,
     overlapGraph: createGraph(),

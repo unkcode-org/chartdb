@@ -8,7 +8,7 @@ import React, {
 import type { CanvasContext, CanvasEvent } from './canvas-context';
 import { canvasContext } from './canvas-context';
 import { useChartDB } from '@/hooks/use-chartdb';
-import { adjustTablePositions } from '@/lib/domain/db-table';
+import { adjustTablePositions, calcTableHeight } from '@/lib/domain/db-table';
 import { useReactFlow } from '@xyflow/react';
 import { findOverlappingTables } from '@/pages/editor-page/canvas/canvas-utils';
 import type { Graph } from '@/lib/graph';
@@ -22,7 +22,17 @@ import {
 } from '@/pages/editor-page/canvas/create-relationship-node/create-relationship-node';
 import { useEventEmitter } from 'ahooks';
 import { useLocalConfig } from '@/hooks/use-local-config';
-import { arrangeRelationshipLanes } from '@/pages/editor-page/canvas/relationship-edge/relationship-routing';
+import {
+    arrangeRelationshipRoutes,
+    type Rect,
+    type RouteRequest,
+    type RelationshipRoute,
+} from '@/pages/editor-page/canvas/relationship-edge/relationship-routing';
+import type { TableNodeType } from '@/pages/editor-page/canvas/table-node/table-node';
+import {
+    LEFT_HANDLE_ID_PREFIX,
+    TARGET_ID_PREFIX,
+} from '@/pages/editor-page/canvas/table-node/table-node-field';
 
 interface CanvasProviderProps {
     children: ReactNode;
@@ -43,17 +53,111 @@ export const CanvasProvider = ({ children }: CanvasProviderProps) => {
         hasActiveFilter,
     } = useDiagramFilter();
     const { showDBViews } = useLocalConfig();
-    const { fitView, screenToFlowPosition, setNodes, getNodes } =
-        useReactFlow();
-    const [relationshipLanes, setRelationshipLanes] = useState<
-        Record<string, number>
+    const {
+        fitView,
+        screenToFlowPosition,
+        setNodes,
+        getNodes,
+        getEdges,
+        getInternalNode,
+    } = useReactFlow();
+    const [relationshipRoutes, setRelationshipRoutes] = useState<
+        Record<string, RelationshipRoute>
     >({});
     const reorganizeRelationships = useCallback(() => {
-        setRelationshipLanes(
-            arrangeRelationshipLanes(relationships, getNodes())
+        const visible = getNodes().filter(
+            (node) => node.type === 'table' && !node.hidden
         );
-    }, [relationships, getNodes]);
-    useEffect(() => setRelationshipLanes({}), [diagramId]);
+        const rects = new Map<string, Rect>(
+            visible.map((node) => [
+                node.id,
+                {
+                    left: node.position.x,
+                    right:
+                        node.position.x +
+                        (node.measured?.width ?? node.width ?? 224),
+                    top: node.position.y,
+                    bottom:
+                        node.position.y +
+                        (node.measured?.height ??
+                            calcTableHeight(
+                                (node as TableNodeType).data.table
+                            )),
+                },
+            ])
+        );
+        const edges = new Map(getEdges().map((edge) => [edge.id, edge]));
+        const requests: RouteRequest[] = relationships.flatMap(
+            (relationship) => {
+                const source = rects.get(relationship.sourceTableId);
+                const target = rects.get(relationship.targetTableId);
+                if (!source || !target) return [];
+
+                const sourceSide = (
+                    source.left + source.right <= target.left + target.right
+                        ? 'right'
+                        : 'left'
+                ) as 'left' | 'right';
+                const targetSide = sourceSide === 'right' ? 'left' : 'right';
+                const edge = edges.get(relationship.id);
+                const sourceNode = getInternalNode(relationship.sourceTableId);
+                const targetNode = getInternalNode(relationship.targetTableId);
+                const sourceHandle =
+                    sourceNode?.internals.handleBounds?.source?.find(
+                        (handle) =>
+                            handle.id ===
+                            (edge?.sourceHandle ??
+                                `${LEFT_HANDLE_ID_PREFIX}${relationship.sourceFieldId}`)
+                    );
+                const targetHandle =
+                    targetNode?.internals.handleBounds?.target?.find(
+                        (handle) =>
+                            handle.id ===
+                            (edge?.targetHandle ??
+                                `${TARGET_ID_PREFIX}${relationship.targetFieldId}`)
+                    );
+                return [
+                    {
+                        id: relationship.id,
+                        source: {
+                            x:
+                                sourceSide === 'left'
+                                    ? source.left
+                                    : source.right,
+                            y:
+                                sourceNode && sourceHandle
+                                    ? sourceNode.internals.positionAbsolute.y +
+                                      sourceHandle.y +
+                                      sourceHandle.height / 2
+                                    : (source.top + source.bottom) / 2,
+                        },
+                        target: {
+                            x:
+                                targetSide === 'left'
+                                    ? target.left
+                                    : target.right,
+                            y:
+                                targetNode && targetHandle
+                                    ? targetNode.internals.positionAbsolute.y +
+                                      targetHandle.y +
+                                      targetHandle.height / 2
+                                    : (target.top + target.bottom) / 2,
+                        },
+                        sourceSide,
+                        targetSide,
+                    },
+                ];
+            }
+        );
+        const routes = arrangeRelationshipRoutes(requests, [...rects.values()]);
+        setRelationshipRoutes(routes);
+    }, [relationships, getNodes, getEdges, getInternalNode]);
+    const clearRelationshipRoutes = useCallback(
+        () => setRelationshipRoutes({}),
+        []
+    );
+    useEffect(() => setRelationshipRoutes({}), [diagramId]);
+    useEffect(() => setRelationshipRoutes({}), [relationships]);
     const [overlapGraph, setOverlapGraph] =
         useState<Graph<string>>(createGraph());
     const [editTableModeTable, setEditTableModeTable] = useState<{
@@ -238,7 +342,8 @@ export const CanvasProvider = ({ children }: CanvasProviderProps) => {
             value={{
                 reorderTables,
                 reorganizeRelationships,
-                relationshipLanes,
+                clearRelationshipRoutes,
+                relationshipRoutes,
                 fitView,
                 setOverlapGraph,
                 overlapGraph,

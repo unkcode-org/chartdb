@@ -318,6 +318,9 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
         hoveringTableId,
         hideCreateRelationshipNode,
         closeRelationshipPopover,
+        relationshipRoutes,
+        clearRelationshipRoutes,
+        reorganizeRelationships,
         events: canvasEvents,
     } = useCanvas();
     const {
@@ -336,6 +339,16 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
     );
 
     const [isInitialLoadingNodes, setIsInitialLoadingNodes] = useState(true);
+    const rerouteAfterDrag = useRef(false);
+    const onNodeDragStart = useCallback(() => {
+        rerouteAfterDrag.current = Object.keys(relationshipRoutes).length > 0;
+        if (rerouteAfterDrag.current) clearRelationshipRoutes();
+    }, [relationshipRoutes, clearRelationshipRoutes]);
+    const onNodeDragStop = useCallback(() => {
+        if (!rerouteAfterDrag.current) return;
+        rerouteAfterDrag.current = false;
+        requestAnimationFrame(reorganizeRelationships);
+    }, [reorganizeRelationships]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState<NodeType>(
         initialTables.map((table) =>
@@ -1641,6 +1654,8 @@ export const Canvas: React.FC<CanvasProps> = ({ initialTables }) => {
                     nodes={nodesWithCursor}
                     edges={edgesWithFloating}
                     onNodesChange={onNodesChangeHandler}
+                    onNodeDragStart={onNodeDragStart}
+                    onNodeDragStop={onNodeDragStop}
                     onEdgesChange={onEdgesChangeHandler}
                     maxZoom={5}
                     minZoom={0.1}

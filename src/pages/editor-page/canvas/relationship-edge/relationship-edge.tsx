@@ -12,7 +12,7 @@ import { useLocalConfig } from '@/hooks/use-local-config';
 import { useCanvas } from '@/hooks/use-canvas';
 import { EditRelationshipPopover } from './edit-relationship-popover';
 import { EllipsisIcon } from 'lucide-react';
-import { getLanePath } from './relationship-routing';
+import { getRoutePath } from './relationship-routing';
 
 export type RelationshipEdgeType = Edge<
     {
@@ -46,7 +46,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 editRelationshipPopover,
                 openRelationshipPopover,
                 closeRelationshipPopover,
-                relationshipLanes,
+                relationshipRoutes,
             } = useCanvas();
 
             const relationship = data?.relationship;
@@ -280,7 +280,12 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 }
             }, [sourceLeftX, sourceRightX, targetLeftX, targetRightX]);
 
+            const route = relationshipRoutes[id];
+            const renderedSourceSide = route?.sourceSide ?? sourceSide;
+            const renderedTargetSide = route?.targetSide ?? targetSide;
+
             const edgePath = useMemo(() => {
+                if (route) return getRoutePath(route.points);
                 // Round values to prevent tiny changes from triggering recalculation
                 const roundedSourceX = Math.round(
                     sourceSide === 'left' ? sourceLeftX : sourceRightX
@@ -290,19 +295,6 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 );
                 const roundedSourceY = Math.round(sourceY);
                 const roundedTargetY = Math.round(targetY);
-
-                const laneY = relationshipLanes[id];
-                if (laneY !== undefined) {
-                    return getLanePath({
-                        sourceX: roundedSourceX,
-                        sourceY: roundedSourceY,
-                        targetX: roundedTargetX,
-                        targetY: roundedTargetY,
-                        sourceSide,
-                        targetSide,
-                        laneY,
-                    });
-                }
 
                 const [path] = getSmoothStepPath({
                     sourceX: roundedSourceX,
@@ -328,8 +320,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 targetSide,
                 edgeNumber,
                 showCardinality,
-                relationshipLanes,
-                id,
+                route,
             ]);
 
             const sourceMarker = useMemo(
@@ -337,18 +328,18 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                     getCardinalityMarkerId({
                         cardinality: relationship?.sourceCardinality ?? 'one',
                         selected: selected ?? false,
-                        side: sourceSide as 'left' | 'right',
+                        side: renderedSourceSide,
                     }),
-                [relationship?.sourceCardinality, selected, sourceSide]
+                [relationship?.sourceCardinality, selected, renderedSourceSide]
             );
             const targetMarker = useMemo(
                 () =>
                     getCardinalityMarkerId({
                         cardinality: relationship?.targetCardinality ?? 'one',
                         selected: selected ?? false,
-                        side: targetSide as 'left' | 'right',
+                        side: renderedTargetSide,
                     }),
-                [relationship?.targetCardinality, selected, targetSide]
+                [relationship?.targetCardinality, selected, renderedTargetSide]
             );
 
             const isDiffNewRelationship = useMemo(
@@ -373,6 +364,32 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
 
             // Calculate the midpoint of the edge for the indicator
             const edgeMidpoint = useMemo(() => {
+                if (route) {
+                    const lengths = route.points
+                        .slice(1)
+                        .map((point, index) =>
+                            Math.hypot(
+                                point.x - route.points[index].x,
+                                point.y - route.points[index].y
+                            )
+                        );
+                    let remaining =
+                        lengths.reduce((sum, length) => sum + length, 0) / 2;
+                    for (let index = 0; index < lengths.length; index++) {
+                        if (remaining <= lengths[index]) {
+                            const from = route.points[index];
+                            const to = route.points[index + 1];
+                            const fraction = lengths[index]
+                                ? remaining / lengths[index]
+                                : 0;
+                            return {
+                                x: from.x + (to.x - from.x) * fraction,
+                                y: from.y + (to.y - from.y) * fraction,
+                            };
+                        }
+                        remaining -= lengths[index];
+                    }
+                }
                 const sourceXPos =
                     sourceSide === 'left' ? sourceLeftX : sourceRightX;
                 const targetXPos =
@@ -390,6 +407,7 @@ export const RelationshipEdge: React.FC<EdgeProps<RelationshipEdgeType>> =
                 targetRightX,
                 sourceY,
                 targetY,
+                route,
             ]);
 
             return (
